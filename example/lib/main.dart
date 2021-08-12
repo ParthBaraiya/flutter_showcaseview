@@ -27,7 +27,7 @@ class MyApp extends StatelessWidget {
                     statusBarColor: Colors.white));
         },
         defaultBlur: 1,
-        builder: Builder(builder: (context) => MailPage()),
+        builder: (context) => MailPage(),
         autoPlay: false,
         autoPlayDelay: Duration(seconds: 3),
         autoPlayLockEnable: false,
@@ -42,20 +42,19 @@ class MailPage extends StatefulWidget {
 }
 
 class _MailPageState extends State<MailPage> {
-  GlobalKey _one = GlobalKey();
-  GlobalKey _two = GlobalKey();
-  GlobalKey _three = GlobalKey();
-  GlobalKey _four = GlobalKey();
-  GlobalKey _five = GlobalKey();
+  final _one = GlobalKey<ShowcaseState>();
+  final _two = GlobalKey<ShowcaseState>();
+  final _three = GlobalKey<ShowcaseState>();
+  final _four = GlobalKey<ShowcaseState>();
+  final _five = GlobalKey<ShowcaseState>();
   List<Mail> mails = [];
 
   @override
   void initState() {
     super.initState();
     //Start showcase view after current widget frames are drawn.
-    WidgetsBinding.instance!.addPostFrameCallback((_) =>
-        ShowCaseWidget.of(context)!
-            .startShowCase([_one, _two, _three, _four, _five]));
+    WidgetsBinding.instance!.addPostFrameCallback(
+        (_) => ShowCaseWidget.of(context)!.startShowCase());
     mails = [
       Mail(
         sender: 'Medium',

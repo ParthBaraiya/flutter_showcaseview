@@ -42,5 +42,7 @@ class RRectClipper extends CustomClipper<Path> {
 
   @override
   bool shouldReclip(covariant CustomClipper<Path> oldClipper) =>
-      !(oldClipper is RRectClipper && innerPath == oldClipper.innerPath);
+      !(oldClipper is RRectClipper &&
+          innerPath == oldClipper.innerPath &&
+          outerPath == oldClipper.outerPath);
 }

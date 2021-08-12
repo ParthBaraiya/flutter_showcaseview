@@ -31,10 +31,8 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 
-import 'constants.dart';
 import 'extensions.dart';
 import 'get_position.dart';
-import 'layout_overlays.dart';
 import 'shape_clipper.dart';
 import 'showcase_widget.dart';
 import 'tooltip_widget.dart';
@@ -61,7 +59,7 @@ class Showcase extends StatefulWidget {
   final Duration animationDuration;
   final VoidCallback? onToolTipClick;
   final VoidCallback? onTargetClick;
-  final bool? disposeOnTap;
+  final bool disposeOnTap;
   final bool disableAnimation;
   final EdgeInsets overlayPadding;
   final bool addShowcasePadding;
@@ -81,7 +79,7 @@ class Showcase extends StatefulWidget {
     this.textColor = Colors.black,
     this.showArrow = true,
     this.onTargetClick,
-    this.disposeOnTap,
+    this.disposeOnTap = false,
     this.animationDuration = const Duration(milliseconds: 2000),
     this.disableAnimation = false,
     this.contentPadding =
@@ -94,17 +92,7 @@ class Showcase extends StatefulWidget {
         width = null,
         container = null,
         assert(overlayOpacity >= 0.0 && overlayOpacity <= 1.0,
-            "overlay opacity should be >= 0.0 and <= 1.0."),
-        assert(
-            onTargetClick == null
-                ? true
-                : (disposeOnTap == null ? false : true),
-            "disposeOnTap is required if you're using onTargetClick"),
-        assert(
-            disposeOnTap == null
-                ? true
-                : (onTargetClick == null ? false : true),
-            "onTargetClick is required if you're using disposeOnTap");
+            "overlay opacity should be >= 0.0 and <= 1.0.");
 
   const Showcase.withWidget({
     required this.key,
@@ -122,7 +110,7 @@ class Showcase extends StatefulWidget {
     this.showcaseBackgroundColor = Colors.white,
     this.textColor = Colors.black,
     this.onTargetClick,
-    this.disposeOnTap,
+    this.disposeOnTap = false,
     this.animationDuration = const Duration(milliseconds: 2000),
     this.disableAnimation = false,
     this.contentPadding = const EdgeInsets.symmetric(vertical: 8),
@@ -139,196 +127,236 @@ class Showcase extends StatefulWidget {
 }
 
 class ShowcaseState extends State<Showcase> with TickerProviderStateMixin {
-  bool _showShowCase = false;
-  Animation<double>? _slideAnimation;
-  late AnimationController _slideAnimationController;
-  Timer? timer;
-  GetPosition? position;
+  ShowCaseWidgetState? _ancestor;
 
-  @override
-  void initState() {
-    super.initState();
+  Timer? _timer;
+  GetPosition? _position;
+  OverlayEntry? _overlayEntry;
 
-    _slideAnimationController = AnimationController(
-      duration: widget.animationDuration,
-      vsync: this,
-    )..addStatusListener((status) {
-        if (status == AnimationStatus.completed) {
-          _slideAnimationController.reverse();
-        }
-        if (_slideAnimationController.isDismissed) {
-          if (!widget.disableAnimation) {
-            _slideAnimationController.forward();
-          }
-        }
-      });
-
-    _slideAnimation = CurvedAnimation(
-      parent: _slideAnimationController,
-      curve: Curves.easeInOut,
-    );
-  }
+  List<GlobalKey<ShowcaseState>> _sequence = [];
+  int _currentIndex = -1;
+  bool _autoPlay = false;
 
   @override
   void dispose() {
-    _slideAnimationController.dispose();
+    hideOverlay();
     super.dispose();
+  }
+
+  @override
+  void reassemble() {
+    super.reassemble();
+
+    if (_overlayEntry != null) {
+      hideOverlay();
+      showOverlay();
+    }
   }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    position ??= GetPosition(
-      key: widget.key,
-      padding: widget.overlayPadding,
-      screenWidth: MediaQuery.of(context).size.width,
-      screenHeight: MediaQuery.of(context).size.height,
-    );
-    showOverlay();
-  }
-
-  ///
-  /// show overlay if there is any target widget
-  ///
-  void showOverlay() {
-    final activeStep = ShowCaseWidget.activeTargetWidget(context);
-    setState(() {
-      _showShowCase = activeStep == widget.key;
-    });
-
-    if (activeStep == widget.key) {
-      _slideAnimationController.forward();
-      if (ShowCaseWidget.of(context)!.autoPlay) {
-        timer = Timer(
-            Duration(
-                seconds: ShowCaseWidget.of(context)!.autoPlayDelay.inSeconds),
-            _nextIfAny);
-      }
+    if (_ancestor == null) {
+      _ancestor = ShowCaseWidget.of(context);
+      _ancestor?.registerKey(widget.key as GlobalKey<ShowcaseState>);
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return AnchoredOverlay(
-      overlayBuilder: (context, rectBound, offset) {
+    return widget.child;
+  }
+
+  bool get isShowingOverlay => _overlayEntry != null;
+
+  void showOverlay() {
+    _overlayEntry = OverlayEntry(
+      builder: (context) {
+        // To calculate the "anchor" point we grab the render box of
+        // our parent Container and then we find the center of that box.
+        final box = this.context.findRenderObject() as RenderBox;
+
+        final topLeft = box.size.topLeft(box.localToGlobal(Offset.zero));
+
+        final bottomRight =
+            box.size.bottomRight(box.localToGlobal(Offset.zero));
+
+        final anchorBounds = Rect.fromLTRB(
+          topLeft.dx,
+          topLeft.dy,
+          bottomRight.dx,
+          bottomRight.dy,
+        );
+
+        final anchorCenter = box.size.center(topLeft);
+
         final size = MediaQuery.of(context).size;
-        position = GetPosition(
-          key: widget.key,
+
+        _position = GetPosition(
+          box: box,
           padding: widget.overlayPadding,
           screenWidth: size.width,
           screenHeight: size.height,
         );
-        return buildOverlayOnTarget(offset, rectBound.size, rectBound, size);
+        return _buildOverlayOnTarget(
+            anchorCenter, anchorBounds.size, anchorBounds, size);
       },
-      showOverlay: true,
-      child: widget.child,
     );
+
+    Overlay.of(_ancestor?.context ?? context)!.insert(_overlayEntry!);
   }
 
-  void _nextIfAny() {
-    if (timer != null && timer!.isActive) {
-      if (ShowCaseWidget.of(context)!.autoPlayLockEnable) {
-        return;
-      }
-      timer!.cancel();
-    } else if (timer != null && !timer!.isActive) {
-      timer = null;
-    }
-    ShowCaseWidget.of(context)!.completed(widget.key);
-    if (!widget.disableAnimation) {
-      _slideAnimationController.forward();
+  void hideOverlay() {
+    if (_overlayEntry != null) {
+      _overlayEntry!.remove();
+      _overlayEntry = null;
     }
   }
 
-  void _getOnTargetTap() {
-    if (widget.disposeOnTap == true) {
-      ShowCaseWidget.of(context)!.dismiss();
+  ///
+  /// Starts the showcase of respected widget.
+  ///
+  void showcase({
+    List<GlobalKey<ShowcaseState>> sequence = const [],
+    int currentIndex = 0,
+    bool autoPlay = false,
+  }) {
+    _ancestor!.widget.onStart?.call(currentIndex, widget.key);
+
+    showOverlay();
+
+    _sequence = sequence;
+    _currentIndex = currentIndex;
+    _autoPlay = autoPlay;
+
+    if (autoPlay && sequence.isNotEmpty) {
+      _timer = Timer(_ancestor!.autoPlayDelay, _next);
+    }
+  }
+
+  /// When user taps on target
+  ///
+  void _onTargetTap() {
+    _clearTimer();
+
+    if (widget.disposeOnTap) {
+      hideOverlay();
+      _ancestor!.dismiss();
       widget.onTargetClick!();
     } else {
-      (widget.onTargetClick ?? _nextIfAny).call();
+      (widget.onTargetClick ?? _next).call();
     }
   }
 
-  void _getOnTooltipTap() {
-    if (widget.disposeOnTap == true) {
-      ShowCaseWidget.of(context)!.dismiss();
+  /// when user taps on tooltip.
+  ///
+  void _onTooltipTap() {
+    _clearTimer();
+    if (widget.disposeOnTap) {
+      hideOverlay();
+      _ancestor!.dismiss();
     }
     widget.onToolTipClick?.call();
   }
 
-  Widget buildOverlayOnTarget(
+  void _next() {
+    if (_timer != null && _timer!.isActive) {
+      if (_ancestor!.autoPlayLockEnable) {
+        return;
+      }
+      _timer!.cancel();
+    } else {
+      _timer = null;
+    }
+
+    hideOverlay();
+
+    _nextShowcase();
+  }
+
+  void _nextShowcase() {
+    _ancestor!.widget.onComplete?.call(_currentIndex, widget.key);
+
+    _ancestor!.nextShowCase(
+      keyIndex: _currentIndex + 1,
+      sequence: _sequence,
+      autoPlay: _autoPlay,
+    );
+  }
+
+  void _clearTimer() {
+    if (_timer != null && _timer!.isActive) {
+      _timer!.cancel();
+    } else {
+      _timer = null;
+    }
+  }
+
+  Widget _buildOverlayOnTarget(
     Offset offset,
     Size size,
     Rect rectBound,
     Size screenSize,
   ) {
-    final blur = widget.blur == null
-        ? ShowCaseWidget.of(context)!.defaultBlur
-        : widget.blur!;
-    return Visibility(
-      visible: _showShowCase,
-      maintainAnimation: true,
-      maintainState: true,
-      child: Stack(
-        children: [
-          GestureDetector(
-            onTap: _nextIfAny,
-            child: ClipPath(
-              clipper: RRectClipper(
-                innerPath: rectBound.getPath(
-                  isCircle: widget.shapeBorder == CircleBorder(),
-                  addPadding: widget.addShowcasePadding,
-                ),
-                outerPath: screenPath!,
+    final blur = widget.blur == null ? _ancestor!.defaultBlur : widget.blur!;
+    return Stack(
+      children: [
+        GestureDetector(
+          onTap: _next,
+          child: ClipPath(
+            clipper: RRectClipper(
+              innerPath: rectBound.getPath(
+                isCircle: widget.shapeBorder == CircleBorder(),
+                addPadding: widget.addShowcasePadding,
               ),
-              child: Visibility(
-                visible: blur != 0,
-                child: BackdropFilter(
-                  filter: ImageFilter.blur(sigmaX: blur, sigmaY: blur),
-                  child: Container(
+              outerPath: _ancestor!.screenPath,
+            ),
+            child: blur != 0
+                ? BackdropFilter(
+                    filter: ImageFilter.blur(sigmaX: blur, sigmaY: blur),
+                    child: Container(
+                      width: MediaQuery.of(context).size.width,
+                      height: MediaQuery.of(context).size.height,
+                      decoration: BoxDecoration(
+                        color: widget.overlayColor,
+                      ),
+                    ),
+                  )
+                : Container(
                     width: MediaQuery.of(context).size.width,
                     height: MediaQuery.of(context).size.height,
                     decoration: BoxDecoration(
                       color: widget.overlayColor,
                     ),
                   ),
-                ),
-                replacement: Container(
-                  width: MediaQuery.of(context).size.width,
-                  height: MediaQuery.of(context).size.height,
-                  decoration: BoxDecoration(
-                    color: widget.overlayColor,
-                  ),
-                ),
-              ),
-            ),
           ),
-          _TargetWidget(
-            offset: offset,
-            size: size,
-            onTap: _getOnTargetTap,
-            shapeBorder: widget.shapeBorder,
-          ),
-          ToolTipWidget(
-            position: position,
-            offset: offset,
-            screenSize: screenSize,
-            title: widget.title,
-            description: widget.description,
-            animationOffset: _slideAnimation,
-            titleTextStyle: widget.titleTextStyle,
-            descTextStyle: widget.descTextStyle,
-            container: widget.container,
-            tooltipColor: widget.showcaseBackgroundColor,
-            textColor: widget.textColor,
-            showArrow: widget.showArrow,
-            contentHeight: widget.height,
-            contentWidth: widget.width,
-            onTooltipTap: _getOnTooltipTap,
-            contentPadding: widget.contentPadding,
-          ),
-        ],
-      ),
+        ),
+        _TargetWidget(
+          offset: offset,
+          size: size,
+          onTap: _onTargetTap,
+          shapeBorder: widget.shapeBorder,
+        ),
+        ToolTipWidget(
+          position: _position,
+          offset: offset,
+          screenSize: screenSize,
+          title: widget.title,
+          description: widget.description,
+          titleTextStyle: widget.titleTextStyle,
+          descTextStyle: widget.descTextStyle,
+          container: widget.container,
+          tooltipColor: widget.showcaseBackgroundColor,
+          textColor: widget.textColor,
+          showArrow: widget.showArrow,
+          contentHeight: widget.height,
+          contentWidth: widget.width,
+          onTooltipTap: _onTooltipTap,
+          contentPadding: widget.contentPadding,
+          disableAnimation: widget.disableAnimation,
+          animationDuration: widget.animationDuration,
+        ),
+      ],
     );
   }
 }

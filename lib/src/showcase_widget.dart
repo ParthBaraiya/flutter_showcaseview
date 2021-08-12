@@ -29,11 +29,11 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 
-import 'constants.dart';
+import '../showcaseview.dart';
 import 'extensions.dart';
 
 class ShowCaseWidget extends StatefulWidget {
-  final Builder builder;
+  final WidgetBuilder builder;
   final VoidCallback? onFinish;
   final Function(int?, GlobalKey)? onStart;
   final Function(int?, GlobalKey)? onComplete;
@@ -50,14 +50,8 @@ class ShowCaseWidget extends StatefulWidget {
     this.autoPlay = false,
     this.autoPlayDelay = const Duration(milliseconds: 2000),
     this.autoPlayLockEnable = false,
-    this.defaultBlur = 0,
+    this.defaultBlur = 2,
   });
-
-  static GlobalKey? activeTargetWidget(BuildContext context) {
-    return context
-        .dependOnInheritedWidgetOfExactType<_InheritedShowCaseView>()!
-        .activeWidgetIds;
-  }
 
   static ShowCaseWidgetState? of(BuildContext context) {
     final state = context.findAncestorStateOfType<ShowCaseWidgetState>();
@@ -73,12 +67,25 @@ class ShowCaseWidget extends StatefulWidget {
 }
 
 class ShowCaseWidgetState extends State<ShowCaseWidget> {
-  List<GlobalKey>? ids;
+  /// Shows the list of keys of [Showcase] widgets
+  /// that are involved in ongoing showcase.
+  ///
+  /// This will give empty list if no showcase are playing.
+  ///
+  List<GlobalKey<ShowcaseState>> get ids => _ids.toList(growable: false);
+
+  List<GlobalKey<ShowcaseState>> _ids = [];
+
+  /// Shows list keys of all the children [Showcase] widgets.
+  ///
+  List<GlobalKey<ShowcaseState>> showcaseKeys = [];
+
   int? activeWidgetId;
   late bool autoPlay;
   late Duration autoPlayDelay;
   late bool autoPlayLockEnable;
   double defaultBlur = 0;
+  late Path screenPath;
 
   @override
   void initState() {
@@ -89,69 +96,52 @@ class ShowCaseWidgetState extends State<ShowCaseWidget> {
     defaultBlur = widget.defaultBlur;
   }
 
-  void startShowCase(List<GlobalKey> widgetIds) {
-    setState(() {
-      ids = widgetIds;
-      activeWidgetId = 0;
-      _onStart();
-    });
+  void registerKey(GlobalKey<ShowcaseState> key) {
+    if (!showcaseKeys.contains(key)) {
+      showcaseKeys.add(key);
+    }
   }
 
-  void completed(GlobalKey? id) {
-    if (ids != null && ids![activeWidgetId!] == id) {
-      setState(() {
-        _onComplete();
-        activeWidgetId = activeWidgetId! + 1;
-        _onStart();
+  void startShowCase([List<GlobalKey<ShowcaseState>>? widgetIds]) async {
+    _ids = widgetIds ?? showcaseKeys;
 
-        if (activeWidgetId! >= ids!.length) {
-          _cleanupAfterSteps();
-          if (widget.onFinish != null) {
-            widget.onFinish!();
-          }
-        }
-      });
+    if (_ids.isNotEmpty) {
+      _ids[0].currentState?.showcase(
+          autoPlay: widget.autoPlay, currentIndex: 0, sequence: _ids);
     }
+  }
+
+  void nextShowCase({
+    List<GlobalKey<ShowcaseState>> sequence = const [],
+    int keyIndex = -1,
+    bool autoPlay = false,
+  }) {
+    if (sequence.isEmpty || keyIndex >= sequence.length || keyIndex < 0) {
+      dismiss();
+      return;
+    }
+
+    activeWidgetId = keyIndex;
+    sequence[keyIndex].currentState?.showcase(
+        sequence: sequence, currentIndex: keyIndex, autoPlay: autoPlay);
   }
 
   void dismiss() {
-    setState(_cleanupAfterSteps);
-  }
-
-  void _onStart() {
-    if (activeWidgetId! < ids!.length) {
-      widget.onStart?.call(activeWidgetId, ids![activeWidgetId!]);
-    }
-  }
-
-  void _onComplete() {
-    widget.onComplete?.call(activeWidgetId, ids![activeWidgetId!]);
-  }
-
-  void _cleanupAfterSteps() {
-    ids = null;
+    _ids.clear();
     activeWidgetId = null;
   }
 
   @override
-  Widget build(BuildContext context) {
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+
     screenPath = (Offset.zero & MediaQuery.of(context).size).getPath();
-    return _InheritedShowCaseView(
-      child: widget.builder,
-      activeWidgetIds: ids?.elementAt(activeWidgetId!),
-    );
   }
-}
-
-class _InheritedShowCaseView extends InheritedWidget {
-  final GlobalKey? activeWidgetIds;
-
-  _InheritedShowCaseView({
-    required this.activeWidgetIds,
-    required Widget child,
-  }) : super(child: child);
 
   @override
-  bool updateShouldNotify(_InheritedShowCaseView oldWidget) =>
-      oldWidget.activeWidgetIds != activeWidgetIds;
+  Widget build(BuildContext context) {
+    return Builder(
+      builder: widget.builder,
+    );
+  }
 }
