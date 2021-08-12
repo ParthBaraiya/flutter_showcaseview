@@ -1,11 +1,13 @@
-import 'dart:developer';
+import 'dart:ui';
 
 import 'package:example/detailscreen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:showcaseview/showcaseview.dart';
 
-void main() => runApp(MyApp());
+void main() {
+  runApp(MyApp());
+}
 
 class MyApp extends StatelessWidget {
   @override
@@ -16,24 +18,19 @@ class MyApp extends StatelessWidget {
         primaryColor: Color(0xffEE5366),
       ),
       debugShowCheckedModeBanner: false,
-      home: Scaffold(
-        body: ShowCaseWidget(
-          onStart: (index, key) {
-            log('onStart: $index, $key');
-          },
-          onComplete: (index, key) {
-            log('onComplete: $index, $key');
-            if (index == 4)
-              SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle.light
-                  .copyWith(
-                      statusBarIconBrightness: Brightness.dark,
-                      statusBarColor: Colors.white));
-          },
-          builder: Builder(builder: (context) => MailPage()),
-          autoPlay: false,
-          autoPlayDelay: Duration(seconds: 3),
-          autoPlayLockEnable: false,
-        ),
+      home: ShowCaseWidget(
+        onComplete: (index, key) {
+          if (index == 4)
+            SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle.light
+                .copyWith(
+                    statusBarIconBrightness: Brightness.dark,
+                    statusBarColor: Colors.white));
+        },
+        defaultBlur: 1,
+        builder: Builder(builder: (context) => MailPage()),
+        autoPlay: false,
+        autoPlayDelay: Duration(seconds: 3),
+        autoPlayLockEnable: false,
       ),
     );
   }

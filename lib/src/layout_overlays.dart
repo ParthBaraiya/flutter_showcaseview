@@ -26,7 +26,8 @@
  */
 
 import 'package:flutter/material.dart';
-import 'package:showcaseview/src/showcase_widget.dart';
+
+import 'showcase_widget.dart';
 
 /// Displays an overlay Widget anchored directly above the center of this
 /// [AnchoredOverlay].
@@ -58,30 +59,26 @@ class AnchoredOverlay extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        return OverlayBuilder(
-          showOverlay: showOverlay,
-          overlayBuilder: (overlayContext) {
-            // To calculate the "anchor" point we grab the render box of
-            // our parent Container and then we find the center of that box.
-            final box = context.findRenderObject() as RenderBox;
-            final topLeft =
-                box.size.topLeft(box.localToGlobal(const Offset(0.0, 0.0)));
-            final bottomRight =
-                box.size.bottomRight(box.localToGlobal(const Offset(0.0, 0.0)));
-            final anchorBounds = Rect.fromLTRB(
-              topLeft.dx,
-              topLeft.dy,
-              bottomRight.dx,
-              bottomRight.dy,
-            );
-            final anchorCenter = box.size.center(topLeft);
-            return overlayBuilder!(overlayContext, anchorBounds, anchorCenter);
-          },
-          child: child,
+    return OverlayBuilder(
+      showOverlay: showOverlay,
+      overlayBuilder: (overlayContext) {
+        // To calculate the "anchor" point we grab the render box of
+        // our parent Container and then we find the center of that box.
+        final box = context.findRenderObject() as RenderBox;
+        final topLeft =
+            box.size.topLeft(box.localToGlobal(const Offset(0.0, 0.0)));
+        final bottomRight =
+            box.size.bottomRight(box.localToGlobal(const Offset(0.0, 0.0)));
+        final anchorBounds = Rect.fromLTRB(
+          topLeft.dx,
+          topLeft.dy,
+          bottomRight.dx,
+          bottomRight.dy,
         );
+        final anchorCenter = box.size.center(topLeft);
+        return overlayBuilder!(overlayContext, anchorBounds, anchorCenter);
       },
+      child: child,
     );
   }
 }

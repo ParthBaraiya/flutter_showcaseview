@@ -25,7 +25,12 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
+
+import 'constants.dart';
+import 'extensions.dart';
 
 class ShowCaseWidget extends StatefulWidget {
   final Builder builder;
@@ -35,6 +40,7 @@ class ShowCaseWidget extends StatefulWidget {
   final bool autoPlay;
   final Duration autoPlayDelay;
   final bool autoPlayLockEnable;
+  final double defaultBlur;
 
   const ShowCaseWidget({
     required this.builder,
@@ -44,6 +50,7 @@ class ShowCaseWidget extends StatefulWidget {
     this.autoPlay = false,
     this.autoPlayDelay = const Duration(milliseconds: 2000),
     this.autoPlayLockEnable = false,
+    this.defaultBlur = 0,
   });
 
   static GlobalKey? activeTargetWidget(BuildContext context) {
@@ -71,6 +78,7 @@ class ShowCaseWidgetState extends State<ShowCaseWidget> {
   late bool autoPlay;
   late Duration autoPlayDelay;
   late bool autoPlayLockEnable;
+  double defaultBlur = 0;
 
   @override
   void initState() {
@@ -78,6 +86,7 @@ class ShowCaseWidgetState extends State<ShowCaseWidget> {
     autoPlayDelay = widget.autoPlayDelay;
     autoPlay = widget.autoPlay;
     autoPlayLockEnable = widget.autoPlayLockEnable;
+    defaultBlur = widget.defaultBlur;
   }
 
   void startShowCase(List<GlobalKey> widgetIds) {
@@ -126,6 +135,7 @@ class ShowCaseWidgetState extends State<ShowCaseWidget> {
 
   @override
   Widget build(BuildContext context) {
+    screenPath = (Offset.zero & MediaQuery.of(context).size).getPath();
     return _InheritedShowCaseView(
       child: widget.builder,
       activeWidgetIds: ids?.elementAt(activeWidgetId!),
