@@ -130,7 +130,6 @@ class ShowcaseState extends State<Showcase> with TickerProviderStateMixin {
   ShowCaseWidgetState? _ancestor;
 
   Timer? _timer;
-  GetPosition? _position;
   OverlayEntry? _overlayEntry;
 
   List<GlobalKey<ShowcaseState>> _sequence = [];
@@ -170,40 +169,35 @@ class ShowcaseState extends State<Showcase> with TickerProviderStateMixin {
   bool get isShowingOverlay => _overlayEntry != null;
 
   void showOverlay() {
-    _overlayEntry = OverlayEntry(
-      builder: (context) {
-        // To calculate the "anchor" point we grab the render box of
-        // our parent Container and then we find the center of that box.
-        final box = this.context.findRenderObject() as RenderBox;
+    final box = context.findRenderObject() as RenderBox;
 
-        final topLeft = box.size.topLeft(box.localToGlobal(Offset.zero));
+    final topLeft = box.size.topLeft(box.localToGlobal(Offset.zero));
 
-        final bottomRight =
-            box.size.bottomRight(box.localToGlobal(Offset.zero));
+    final bottomRight = box.size.bottomRight(box.localToGlobal(Offset.zero));
 
-        final anchorBounds = Rect.fromLTRB(
-          topLeft.dx,
-          topLeft.dy,
-          bottomRight.dx,
-          bottomRight.dy,
-        );
-
-        final anchorCenter = box.size.center(topLeft);
-
-        final size = MediaQuery.of(context).size;
-
-        _position = GetPosition(
-          box: box,
-          padding: widget.overlayPadding,
-          screenWidth: size.width,
-          screenHeight: size.height,
-        );
-        return _buildOverlayOnTarget(
-            anchorCenter, anchorBounds.size, anchorBounds, size);
-      },
+    final anchorBounds = Rect.fromLTRB(
+      topLeft.dx,
+      topLeft.dy,
+      bottomRight.dx,
+      bottomRight.dy,
     );
 
-    Overlay.of(_ancestor?.context ?? context)!.insert(_overlayEntry!);
+    final anchorCenter = box.size.center(topLeft);
+
+    final size = MediaQuery.of(context).size;
+
+    _ancestor?.showcase(
+        overlay: _buildOverlayOnTarget(
+            anchorCenter,
+            anchorBounds.size,
+            anchorBounds,
+            size,
+            GetPosition(
+              box: box,
+              padding: widget.overlayPadding,
+              screenHeight: size.height,
+              screenWidth: size.width,
+            )));
   }
 
   void hideOverlay() {
@@ -297,6 +291,7 @@ class ShowcaseState extends State<Showcase> with TickerProviderStateMixin {
     Size size,
     Rect rectBound,
     Size screenSize,
+    GetPosition position,
   ) {
     final blur = widget.blur == null ? _ancestor!.defaultBlur : widget.blur!;
     return Stack(
@@ -338,7 +333,8 @@ class ShowcaseState extends State<Showcase> with TickerProviderStateMixin {
           shapeBorder: widget.shapeBorder,
         ),
         ToolTipWidget(
-          position: _position,
+          key: ValueKey(offset),
+          position: position,
           offset: offset,
           screenSize: screenSize,
           title: widget.title,

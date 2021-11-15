@@ -67,6 +67,8 @@ class ShowCaseWidget extends StatefulWidget {
 }
 
 class ShowCaseWidgetState extends State<ShowCaseWidget> {
+  final _changeWidget = WidgetNotifier();
+
   /// Shows the list of keys of [Showcase] widgets
   /// that are involved in ongoing showcase.
   ///
@@ -129,7 +131,10 @@ class ShowCaseWidgetState extends State<ShowCaseWidget> {
   void dismiss() {
     _ids.clear();
     activeWidgetId = null;
+    _changeWidget.reset();
   }
+
+  void showcase({required Widget overlay}) => _changeWidget.value = overlay;
 
   @override
   void didChangeDependencies() {
@@ -140,8 +145,24 @@ class ShowCaseWidgetState extends State<ShowCaseWidget> {
 
   @override
   Widget build(BuildContext context) {
-    return Builder(
-      builder: widget.builder,
+    return Stack(
+      children: [
+        Builder(
+          builder: widget.builder,
+        ),
+        ValueListenableBuilder<Widget>(
+          valueListenable: _changeWidget,
+          builder: (_, value, __) => value,
+        ),
+      ],
     );
+  }
+}
+
+class WidgetNotifier extends ValueNotifier<Widget> {
+  WidgetNotifier() : super(SizedBox.shrink());
+
+  void reset() {
+    value = SizedBox.shrink();
   }
 }

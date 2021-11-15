@@ -54,6 +54,7 @@ class ToolTipWidget extends StatefulWidget {
   final bool disableAnimation;
 
   ToolTipWidget({
+    Key? key,
     this.position,
     this.offset,
     this.screenSize,
@@ -71,7 +72,7 @@ class ToolTipWidget extends StatefulWidget {
     this.contentPadding = const EdgeInsets.symmetric(vertical: 8),
     this.animationDuration = const Duration(milliseconds: 1000),
     this.disableAnimation = false,
-  });
+  }) : super(key: key);
 
   @override
   _ToolTipWidgetState createState() => _ToolTipWidgetState();
@@ -115,6 +116,7 @@ class _ToolTipWidgetState extends State<ToolTipWidget>
 
   @override
   void dispose() {
+    _controller.stop();
     _controller.dispose();
 
     super.dispose();
@@ -337,40 +339,45 @@ class _ToolTipWidgetState extends State<ToolTipWidget>
 
   bool _isLeft() {
     final screenWidth = widget.screenSize!.width / 3;
-    return !(screenWidth <= widget.position!.center);
+    return screenWidth > widget.position!.center;
   }
 
   bool _isRight() {
-    final screenWidth = widget.screenSize!.width / 3;
-    return ((screenWidth * 2) <= widget.position!.center);
+    final screenWidth = (widget.screenSize!.width * 2) / 3;
+
+    return screenWidth <= widget.position!.center;
   }
 
   double? _getLeft() {
+    final tooltipWidth = _getTooltipWidth();
+
     if (_isLeft()) {
-      var leftPadding = widget.position!.center - (_getTooltipWidth() * 0.1);
-      if (leftPadding + _getTooltipWidth() > widget.screenSize!.width) {
-        leftPadding = (widget.screenSize!.width - 20) - _getTooltipWidth();
+      var leftPadding = widget.position!.center - (tooltipWidth * 0.1);
+      if (leftPadding + tooltipWidth > widget.screenSize!.width) {
+        leftPadding = (widget.screenSize!.width - 20) - tooltipWidth;
       }
       if (leftPadding < 20) {
         leftPadding = 14;
       }
       return leftPadding;
     } else if (!(_isRight())) {
-      return widget.position!.center - (_getTooltipWidth() * 0.5);
+      return widget.position!.center - (tooltipWidth * 0.5);
     } else {
       return null;
     }
   }
 
   double? _getRight() {
+    final tooltipWidth = _getTooltipWidth();
+
     if (_isRight()) {
-      var rightPadding = widget.position!.center + (_getTooltipWidth() / 2);
-      if (rightPadding + _getTooltipWidth() > widget.screenSize!.width) {
+      var rightPadding = widget.position!.center + (tooltipWidth / 2);
+      if (rightPadding + tooltipWidth > widget.screenSize!.width) {
         rightPadding = 14;
       }
       return rightPadding;
     } else if (!(_isLeft())) {
-      return widget.position!.center - (_getTooltipWidth() * 0.5);
+      return widget.position!.center - (tooltipWidth * 0.5);
     } else {
       return null;
     }
