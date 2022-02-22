@@ -24,7 +24,7 @@ import 'package:flutter/material.dart';
 
 import 'get_position.dart';
 
-enum TooltipHorizontalAxis { left, right }
+enum TooltipHorizontalAxis { left, right, center }
 
 enum TooltipVerticalPosition { up, down }
 
@@ -120,6 +120,8 @@ class _ToolTipWidgetState extends State<ToolTipWidget>
       left = widget.screenSize.width - showcaseSize.width - overlayPadding;
       leftOffset = widgetCenter.dx - left + (widget.arrowSize.width / 2);
       horizontalAxis = TooltipHorizontalAxis.left;
+    } else if (left + showcaseSize.width < widget.screenSize.width) {
+      horizontalAxis = TooltipHorizontalAxis.center;
     }
 
     if (top + showcaseSize.height > widget.screenSize.height) {
@@ -249,7 +251,9 @@ class _ToolTipWidgetState extends State<ToolTipWidget>
                 Column(
                   crossAxisAlignment: _coords != null && _coords!.isArrowLeft
                       ? CrossAxisAlignment.start
-                      : CrossAxisAlignment.end,
+                      : _coords != null && _coords!.isArrowCenter
+                          ? CrossAxisAlignment.center
+                          : CrossAxisAlignment.end,
                   mainAxisAlignment: MainAxisAlignment.start,
                   verticalDirection: verticalDirection,
                   mainAxisSize: MainAxisSize.min,
@@ -383,7 +387,10 @@ class _TooltipCoordinates {
   });
 
   bool get isArrowUp => verticalAxis == TooltipVerticalPosition.down;
+
   bool get isArrowLeft => horizontalAxis == TooltipHorizontalAxis.right;
+
+  bool get isArrowCenter => horizontalAxis == TooltipHorizontalAxis.center;
 
   @override
   bool operator ==(Object other) =>

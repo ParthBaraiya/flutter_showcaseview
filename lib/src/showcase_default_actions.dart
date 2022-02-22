@@ -45,6 +45,7 @@ class ShowCaseDefaultActions extends StatelessWidget {
               'Previous',
               style: TextStyle(color: previous.textColor),
             ),
+            style: TextButton.styleFrom(padding: EdgeInsets.zero),
             onPressed: previous.callback ??
                 () {
                   if (showcaseContext != null &&
@@ -59,6 +60,7 @@ class ShowCaseDefaultActions extends StatelessWidget {
               'Next',
               style: TextStyle(color: next.textColor),
             ),
+            style: TextButton.styleFrom(padding: EdgeInsets.zero),
             onPressed: next.callback ??
                 () {
                   if (showcaseContext != null &&
@@ -77,6 +79,7 @@ class ShowCaseDefaultActions extends StatelessWidget {
               'Stop',
               style: TextStyle(color: stop.textColor),
             ),
+            style: TextButton.styleFrom(padding: EdgeInsets.zero),
             onPressed: stop.callback ??
                 () {
                   if (showcaseContext != null &&
