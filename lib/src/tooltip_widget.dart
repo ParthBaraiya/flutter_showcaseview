@@ -335,7 +335,7 @@ class _ToolTipWidgetState extends State<ToolTipWidget>
                                       SizedBox(
                                         height: widget
                                                 .spaceBetweenTitleAndButtons ??
-                                            8,
+                                            5,
                                       ),
                                     if (widget.actions != null)
                                       LayoutBuilder(

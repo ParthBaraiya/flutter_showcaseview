@@ -11,7 +11,7 @@ class ShowCaseDefaultActions extends StatelessWidget {
   final VerticalDirection verticalDirection;
   final TextBaseline? textBaseline;
   final double? dividerThickness;
-  final bool dividerVisible;
+  final Color verticalDividerColor;
 
   final ActionButtonConfig next;
   final ActionButtonConfig previous;
@@ -31,7 +31,7 @@ class ShowCaseDefaultActions extends StatelessWidget {
     this.verticalDirection = VerticalDirection.down,
     this.textBaseline,
     this.dividerThickness = 1.0,
-    this.dividerVisible = true,
+    this.verticalDividerColor = const Color(0xffee5366),
   }) : super(key: key);
 
   @override
@@ -49,9 +49,10 @@ class ShowCaseDefaultActions extends StatelessWidget {
       children: [
         if (previous.buttonVisible)
           Expanded(
-            child: TextButton(
-              child: Text(
-                'Previous',
+            child: TextButton.icon(
+              icon: previous.icon ?? SizedBox.shrink(),
+              label: Text(
+                previous.text ?? 'Previous',
                 style: TextStyle(color: previous.textColor),
               ),
               style: ButtonStyle(
@@ -66,18 +67,45 @@ class ShowCaseDefaultActions extends StatelessWidget {
                   },
             ),
           ),
-        if (dividerVisible &&
-            (previous.buttonVisible && next.buttonVisible ||
-                previous.buttonVisible && stop.buttonVisible))
+        if (previous.buttonVisible && stop.buttonVisible ||
+            previous.buttonVisible && next.buttonVisible)
           VerticalDivider(
+            width: 1.0,
             thickness: dividerThickness,
-            color: previous.verticalDividerColor,
+            color: verticalDividerColor,
+          ),
+        if (stop.buttonVisible)
+          Expanded(
+            child: TextButton.icon(
+              icon: previous.icon ?? SizedBox.shrink(),
+              label: Text(
+                stop.text ?? 'Stop',
+                style: TextStyle(color: stop.textColor),
+              ),
+              style: ButtonStyle(
+                  backgroundColor:
+                      MaterialStateProperty.all<Color>(stop.textButtonBgColor)),
+              onPressed: stop.callback ??
+                  () {
+                    if (showcaseContext != null &&
+                        ShowCaseWidget.of(showcaseContext)!.ids != null) {
+                      ShowCaseWidget.of(showcaseContext)!.dismiss();
+                    }
+                  },
+            ),
+          ),
+        if (stop.buttonVisible && next.buttonVisible)
+          VerticalDivider(
+            width: 1.0,
+            thickness: dividerThickness,
+            color: verticalDividerColor,
           ),
         if (next.buttonVisible)
           Expanded(
-            child: TextButton(
-              child: Text(
-                'Next',
+            child: TextButton.icon(
+              icon: previous.icon ?? SizedBox.shrink(),
+              label: Text(
+                next.text ?? 'Next',
                 style: TextStyle(color: next.textColor),
               ),
               style: ButtonStyle(
@@ -96,30 +124,6 @@ class ShowCaseDefaultActions extends StatelessWidget {
                   },
             ),
           ),
-        if (dividerVisible && next.buttonVisible && stop.buttonVisible)
-          VerticalDivider(
-            thickness: dividerThickness,
-            color: next.verticalDividerColor,
-          ),
-        if (stop.buttonVisible)
-          Expanded(
-            child: TextButton(
-              child: Text(
-                'Stop',
-                style: TextStyle(color: stop.textColor),
-              ),
-              style: ButtonStyle(
-                  backgroundColor:
-                      MaterialStateProperty.all<Color>(stop.textButtonBgColor)),
-              onPressed: stop.callback ??
-                  () {
-                    if (showcaseContext != null &&
-                        ShowCaseWidget.of(showcaseContext)!.ids != null) {
-                      ShowCaseWidget.of(showcaseContext)!.dismiss();
-                    }
-                  },
-            ),
-          ),
       ],
     );
   }
@@ -132,14 +136,17 @@ class ShowCaseDefaultActions extends StatelessWidget {
 }
 
 class ActionButtonConfig {
+  /// button text
+  final String? text;
+
+  /// button icon or image
+  final Widget? icon;
+
   /// Color of button text.
   final Color textColor;
 
   /// Color of button background.
   final Color textButtonBgColor;
-
-  /// Color of vertical divider.
-  final Color verticalDividerColor;
 
   /// Callback on button tap.
   ///
@@ -150,8 +157,9 @@ class ActionButtonConfig {
   final bool buttonVisible;
 
   const ActionButtonConfig({
+    this.text,
+    this.icon,
     this.textColor = const Color(0xffee5366),
-    this.verticalDividerColor = const Color(0xffee5366),
     this.textButtonBgColor = Colors.transparent,
     this.callback,
     this.buttonVisible = true,
