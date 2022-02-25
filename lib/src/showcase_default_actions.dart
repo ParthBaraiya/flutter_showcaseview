@@ -10,12 +10,17 @@ class ShowCaseDefaultActions extends StatelessWidget {
   final TextDirection? textDirection;
   final VerticalDirection verticalDirection;
   final TextBaseline? textBaseline;
+  final double? dividerThickness;
+  final bool dividerVisible;
 
   final ActionButtonConfig next;
   final ActionButtonConfig previous;
   final ActionButtonConfig stop;
 
+  final GlobalKey _key1 = GlobalKey();
+
   ShowCaseDefaultActions({
+    Key? key,
     this.next = const ActionButtonConfig(),
     this.previous = const ActionButtonConfig(),
     this.stop = const ActionButtonConfig(),
@@ -25,7 +30,9 @@ class ShowCaseDefaultActions extends StatelessWidget {
     this.textDirection,
     this.verticalDirection = VerticalDirection.down,
     this.textBaseline,
-  });
+    this.dividerThickness = 1.0,
+    this.dividerVisible = true,
+  }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -36,60 +43,91 @@ class ShowCaseDefaultActions extends StatelessWidget {
       mainAxisAlignment: mainAxisAlignment,
       verticalDirection: verticalDirection,
       crossAxisAlignment: crossAxisAlignment,
+      key: _key1,
       textBaseline: textBaseline,
       textDirection: textDirection,
       children: [
-        if (previous.visible)
-          TextButton(
-            child: Text(
-              'Previous',
-              style: TextStyle(color: previous.textColor),
+        if (previous.buttonVisible)
+          Expanded(
+            child: TextButton(
+              child: Text(
+                'Previous',
+                style: TextStyle(color: previous.textColor),
+              ),
+              style: ButtonStyle(
+                  backgroundColor: MaterialStateProperty.all<Color>(
+                      previous.textButtonBgColor)),
+              onPressed: previous.callback ??
+                  () {
+                    if (showcaseContext != null &&
+                        ShowCaseWidget.of(showcaseContext)!.ids != null) {
+                      ShowCaseWidget.of(showcaseContext)!.prev();
+                    }
+                  },
             ),
-            style: TextButton.styleFrom(padding: EdgeInsets.zero),
-            onPressed: previous.callback ??
-                () {
-                  if (showcaseContext != null &&
-                      ShowCaseWidget.of(showcaseContext)!.ids != null) {
-                    ShowCaseWidget.of(showcaseContext)!.prev();
-                  }
-                },
           ),
-        if (next.visible)
-          TextButton(
-            child: Text(
-              'Next',
-              style: TextStyle(color: next.textColor),
-            ),
-            style: TextButton.styleFrom(padding: EdgeInsets.zero),
-            onPressed: next.callback ??
-                () {
-                  if (showcaseContext != null &&
-                      ShowCaseWidget.of(showcaseContext)!.ids != null) {
-                    ShowCaseWidget.of(showcaseContext)!.completed(
-                        ShowCaseWidget.of(showcaseContext)!.ids![
-                            ShowCaseWidget.of(showcaseContext)!
-                                    .activeWidgetId ??
-                                0]);
-                  }
-                },
+        if (dividerVisible &&
+            (previous.buttonVisible && next.buttonVisible ||
+                previous.buttonVisible && stop.buttonVisible))
+          VerticalDivider(
+            thickness: dividerThickness,
+            color: previous.verticalDividerColor,
           ),
-        if (stop.visible)
-          TextButton(
-            child: Text(
-              'Stop',
-              style: TextStyle(color: stop.textColor),
+        if (next.buttonVisible)
+          Expanded(
+            child: TextButton(
+              child: Text(
+                'Next',
+                style: TextStyle(color: next.textColor),
+              ),
+              style: ButtonStyle(
+                  backgroundColor:
+                      MaterialStateProperty.all<Color>(next.textButtonBgColor)),
+              onPressed: next.callback ??
+                  () {
+                    if (showcaseContext != null &&
+                        ShowCaseWidget.of(showcaseContext)!.ids != null) {
+                      ShowCaseWidget.of(showcaseContext)!.completed(
+                          ShowCaseWidget.of(showcaseContext)!.ids![
+                              ShowCaseWidget.of(showcaseContext)!
+                                      .activeWidgetId ??
+                                  0]);
+                    }
+                  },
             ),
-            style: TextButton.styleFrom(padding: EdgeInsets.zero),
-            onPressed: stop.callback ??
-                () {
-                  if (showcaseContext != null &&
-                      ShowCaseWidget.of(showcaseContext)!.ids != null) {
-                    ShowCaseWidget.of(showcaseContext)!.dismiss();
-                  }
-                },
+          ),
+        if (dividerVisible && next.buttonVisible && stop.buttonVisible)
+          VerticalDivider(
+            thickness: dividerThickness,
+            color: next.verticalDividerColor,
+          ),
+        if (stop.buttonVisible)
+          Expanded(
+            child: TextButton(
+              child: Text(
+                'Stop',
+                style: TextStyle(color: stop.textColor),
+              ),
+              style: ButtonStyle(
+                  backgroundColor:
+                      MaterialStateProperty.all<Color>(stop.textButtonBgColor)),
+              onPressed: stop.callback ??
+                  () {
+                    if (showcaseContext != null &&
+                        ShowCaseWidget.of(showcaseContext)!.ids != null) {
+                      ShowCaseWidget.of(showcaseContext)!.dismiss();
+                    }
+                  },
+            ),
           ),
       ],
     );
+  }
+
+  double? getDefaultWidth() {
+    return _key1.currentContext != null
+        ? (_key1.currentContext!.findRenderObject() as RenderBox).size.width
+        : null;
   }
 }
 
@@ -97,17 +135,25 @@ class ActionButtonConfig {
   /// Color of button text.
   final Color textColor;
 
+  /// Color of button background.
+  final Color textButtonBgColor;
+
+  /// Color of vertical divider.
+  final Color verticalDividerColor;
+
   /// Callback on button tap.
   ///
   /// Note: Default callback will be overridden by this one.
   final VoidCallback? callback;
 
   /// Defines visibility of button.
-  final bool visible;
+  final bool buttonVisible;
 
   const ActionButtonConfig({
-    this.textColor = Colors.white,
+    this.textColor = const Color(0xffee5366),
+    this.verticalDividerColor = const Color(0xffee5366),
+    this.textButtonBgColor = Colors.transparent,
     this.callback,
-    this.visible = true,
+    this.buttonVisible = true,
   });
 }
