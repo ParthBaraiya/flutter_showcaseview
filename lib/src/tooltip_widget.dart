@@ -23,6 +23,7 @@
 import 'package:flutter/material.dart';
 
 import 'get_position.dart';
+import 'get_width.dart';
 
 enum TooltipHorizontalAxis { left, right, center }
 
@@ -47,10 +48,15 @@ class ToolTipWidget extends StatefulWidget {
   final bool disableAnimation;
   final Rect rect;
   final Size arrowSize;
+  final double? buttonsContainerWidth;
+  final double? buttonsContainerHeight;
+  final Color? buttonsContainerColor;
+  final double? spaceBetweenTitleAndButtons;
 
   ToolTipWidget({
-    required this.position,
-    required this.offset,
+    Key? key,
+    this.position,
+    this.offset,
     required this.screenSize,
     required this.title,
     required this.description,
@@ -67,7 +73,11 @@ class ToolTipWidget extends StatefulWidget {
     this.actions,
     required this.rect,
     required this.arrowSize,
-  });
+    this.buttonsContainerWidth,
+    this.buttonsContainerHeight,
+    this.buttonsContainerColor,
+    this.spaceBetweenTitleAndButtons,
+  }) : super(key: key);
 
   @override
   _ToolTipWidgetState createState() => _ToolTipWidgetState();
@@ -76,6 +86,8 @@ class ToolTipWidget extends StatefulWidget {
 class _ToolTipWidgetState extends State<ToolTipWidget>
     with SingleTickerProviderStateMixin {
   _TooltipCoordinates? _coords;
+  final GlobalKey _key1 = GlobalKey();
+  final GlobalKey _key2 = GlobalKey();
 
   late final AnimationController _parentController;
   late final Animation<double> _curvedAnimation;
@@ -254,7 +266,6 @@ class _ToolTipWidgetState extends State<ToolTipWidget>
                       : _coords != null && _coords!.isArrowCenter
                           ? CrossAxisAlignment.center
                           : CrossAxisAlignment.end,
-                  mainAxisAlignment: MainAxisAlignment.start,
                   verticalDirection: verticalDirection,
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -263,57 +274,106 @@ class _ToolTipWidgetState extends State<ToolTipWidget>
                             child: GestureDetector(
                               onTap: widget.onTooltipTap,
                               child: Container(
-                                padding: widget.contentPadding,
                                 clipBehavior: Clip.hardEdge,
                                 decoration: BoxDecoration(
                                   color: widget.tooltipColor,
                                   borderRadius: BorderRadius.circular(8),
                                 ),
-                                child: Container(
-                                  constraints: BoxConstraints(
-                                    maxWidth: widget.screenSize.width - 42,
-                                  ),
-                                  child: Column(
-                                    crossAxisAlignment: widget.title != null
-                                        ? CrossAxisAlignment.start
-                                        : CrossAxisAlignment.center,
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: <Widget>[
-                                      widget.title != null
-                                          ? Text(
-                                              widget.title!,
-                                              style: widget.titleTextStyle ??
-                                                  Theme.of(context)
-                                                      .textTheme
-                                                      .headline6!
-                                                      .merge(
-                                                        TextStyle(
-                                                          color:
-                                                              widget.textColor,
-                                                        ),
-                                                      ),
-                                            )
-                                          : SizedBox.shrink(),
-                                      Text(
-                                        widget.description!,
-                                        style: widget.descTextStyle ??
-                                            Theme.of(context)
-                                                .textTheme
-                                                .subtitle2!
-                                                .merge(
-                                                  TextStyle(
-                                                    color: widget.textColor,
-                                                  ),
-                                                ),
+                                constraints: BoxConstraints(
+                                  maxWidth: widget.screenSize.width - 42,
+                                ),
+                                child: Column(
+                                  crossAxisAlignment:
+                                      _coords != null && _coords!.isArrowCenter
+                                          ? CrossAxisAlignment.center
+                                          : CrossAxisAlignment.start,
+                                  children: [
+                                    Container(
+                                      padding: widget.contentPadding,
+                                      child: Column(
+                                        crossAxisAlignment: widget.title != null
+                                            ? CrossAxisAlignment.start
+                                            : CrossAxisAlignment.center,
+                                        children: <Widget>[
+                                          widget.title != null
+                                              ? Text(
+                                                  widget.title!,
+                                                  key: _key1,
+                                                  style:
+                                                      widget.titleTextStyle ??
+                                                          Theme.of(context)
+                                                              .textTheme
+                                                              .headline6!
+                                                              .merge(
+                                                                TextStyle(
+                                                                  color: widget
+                                                                      .textColor,
+                                                                ),
+                                                              ),
+                                                )
+                                              : SizedBox.shrink(),
+                                          widget.description != null
+                                              ? Text(
+                                                  widget.description!,
+                                                  key: _key2,
+                                                  style: widget.descTextStyle ??
+                                                      Theme.of(context)
+                                                          .textTheme
+                                                          .subtitle2!
+                                                          .merge(
+                                                            TextStyle(
+                                                              color: widget
+                                                                  .textColor,
+                                                            ),
+                                                          ),
+                                                )
+                                              : SizedBox.shrink(),
+                                        ],
                                       ),
-                                    ],
-                                  ),
+                                    ),
+                                    if (widget.actions != null)
+                                      SizedBox(
+                                        height: widget
+                                                .spaceBetweenTitleAndButtons ??
+                                            8,
+                                      ),
+                                    if (widget.actions != null)
+                                      LayoutBuilder(
+                                          builder: (context, constraints) {
+                                        return Container(
+                                          color: widget.buttonsContainerColor ??
+                                              Colors.white,
+                                          height:
+                                              widget.buttonsContainerHeight ??
+                                                  40,
+                                          width: GetWidth(
+                                            key1: _key1,
+                                            key2: _key2,
+                                            buttonWidth:
+                                                widget.buttonsContainerWidth,
+                                            contentPadding:
+                                                widget.contentPadding,
+                                          ).getButtonsContainerWidth(),
+                                          child: widget.actions!,
+                                        );
+                                      }),
+                                  ],
                                 ),
                               ),
                             ),
                           )
-                        : widget.container!,
-                    if (widget.actions != null) widget.actions!
+                        : Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              widget.container!,
+                              if (widget.actions != null)
+                                SizedBox(
+                                  height:
+                                      widget.spaceBetweenTitleAndButtons ?? 5,
+                                ),
+                              if (widget.actions != null) widget.actions!
+                            ],
+                          ),
                   ],
                 ),
               ],
